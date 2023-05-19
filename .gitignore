@@ -1,0 +1,17 @@
+*.class
+*.log
+*.iml
+/bin/*
+/target/**
+/project/target/**
+/project/project/**
+/usage/*
+/.idea
+/.idea_modules
+/.classpath
+/.project/**
+/.settings
+/RUNNING_PID
+.metadata
+.DS_Store
+.bsp
