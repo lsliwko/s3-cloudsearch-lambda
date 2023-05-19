@@ -55,34 +55,36 @@ class LambdaMain extends RequestHandler[SQSEvent, Unit] {
       )).build()
   }
 
-  def handleRequest(input: SQSEvent, context: Context): Unit = {
-    logger = context.getLogger()  //set LambdaLogger from context
 
-    val documentsBatch = input.getRecords.asScala
-      .par
+  def handleRequest(input: SQSEvent, context: Context): Unit = {
+    logger = context.getLogger() //set LambdaLogger from context
+
+    val documentsBatch = input.getRecords.asScala.par //parallelism
       .flatMap { sqsMessage =>
         //deserialize S3 event from SQS event body
         val s3Event = s3EventSerializer.fromJson(sqsMessage.getBody)
-        s3Event.getRecords.asScala  //flatten S3EventNotificationRecord(s)
+        s3Event.getRecords.asScala //flatten S3EventNotificationRecord(s)
       }
       .collect {
 
         case record if record.getEventName.startsWith("ObjectCreated") =>
-          val objectKey = record.getS3.getObject.getUrlDecodedKey
+          val objectKey = normalizeObjectKey(record)
           logger.log(s"Created object: $objectKey\n")
-          Try { readObjectContent(record) } match { //read object content (if available)
+          Try {
+            readObjectContent(record)
+          } match { //read object content (if available)
             case Failure(_) => logger.log(s"Content cannot be read: $objectKey\n"); None
             case Success(objectContent) =>
               //update CloudSearch document (with object content)
               Some(Map(
                 "type" -> "add",
                 "id" -> objectKey,
-                "fields" -> Map("content" -> objectContent).asJava  //index fields
+                "fields" -> Map("content" -> objectContent).asJava //index fields
               ).asJava)
           }
 
         case record if record.getEventName.startsWith("ObjectRemoved") =>
-          val objectKey = record.getS3.getObject.getUrlDecodedKey
+          val objectKey = normalizeObjectKey(record)
           logger.log(s"Deleted object: $objectKey\n")
           //delete CloudSearch document
           Some(Map(
@@ -91,15 +93,13 @@ class LambdaMain extends RequestHandler[SQSEvent, Unit] {
           ).asJava)
 
       }
-      .flatten
-      .toArray.array
+      .flatten.toArray.array
 
     //execute batch documents update
-    //CloudSearch update batch has 5MB limit and it's throttled (1 batch per 10s)
     updateCloudSearchDocuments(gson.toJson(documentsBatch))
   }
-
-  private def updateCloudSearchDocuments(documentsBatch: String): Unit = {
+  
+  private def updateCloudSearchDocuments(documentsBatch: String): Unit =
     retry(5) {
       logger.log(s"CloudSearch documents batch:\n${documentsBatch}\n")
       cloudSearchDomainClient.uploadDocuments(new UploadDocumentsRequest()
@@ -108,20 +108,24 @@ class LambdaMain extends RequestHandler[SQSEvent, Unit] {
         .withContentLength(documentsBatch.length)
       )
     }
-  }
 
-  private def readObjectContent(record: S3EventNotificationRecord) : String = {
+  private def readObjectContent(record: S3EventNotificationRecord): String =
     retry(5) {
       val s3Object = s3Client.getObject(
         record.getS3.getBucket.getName,
         record.getS3.getObject.getUrlDecodedKey
       )
-      //CloudSearch literal index field has 4KB limit (also cleanup)
+      //CloudSearch text field has 1MB limit (also cleanup)
       StringUtils.normalizeSpace(CharMatcher.ascii().retainFrom(
-        IOUtils.toString(ByteStreams.limit(s3Object.getObjectContent, 4096))
+        IOUtils.toString(ByteStreams.limit(s3Object.getObjectContent, 1048576))
       ))
     }
-  }
+
+  @inline
+  private def normalizeObjectKey(record: S3EventNotificationRecord): String =
+    StringUtils.normalizeSpace(CharMatcher.ascii().retainFrom(
+      record.getS3.getObject.getUrlDecodedKey
+    ))
 
   @inline
   private def readSystemEnv(env: String): String =
@@ -135,4 +139,5 @@ class LambdaMain extends RequestHandler[SQSEvent, Unit] {
       case Failure(e) => throw e
     }
   }
+
 }
