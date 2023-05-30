@@ -17,8 +17,8 @@ jobs:
           cache: 'sbt'
 
       - name: Set version variable
-        run: |
-          echo "VERSION_NAME=$(sbt -Dsbt.supershell=false -error 'print version')" >> $GITHUB_ENV
+        run: | 
+          echo "VERSION_NAME=$(sbt -Dsbt.supershell=false -no-colors -error 'print version')" >> $GITHUB_ENV
           echo Version found ${{env.VERSION_NAME}}
           
       - name: Building package with Sbt [${{env.VERSION_NAME}}]
