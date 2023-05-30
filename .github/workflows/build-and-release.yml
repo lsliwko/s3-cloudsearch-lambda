@@ -18,7 +18,7 @@ jobs:
 
       - name: Set version variable
         run: |
-          echo "VERSION_NAME=1.0.0" >> $GITHUB_ENV
+          echo "VERSION_NAME=$(sbt -no-colors 'print version' | tail -n 1)" >> $GITHUB_ENV
           echo Version found ${{env.VERSION_NAME}}
           
       - name: Building package with Sbt [${{env.VERSION_NAME}}]
