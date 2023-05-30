@@ -29,6 +29,6 @@ jobs:
         if: ${{ !endsWith(env.VERSION_NAME, '-SNAPSHOT') }}
         run: |
           if [ $(git tag -l "v${{env.VERSION_NAME}}") ]; then echo "Tag v${{env.VERSION_NAME}} already released"; exit 1; fi
-          gh release create v${{env.VERSION_NAME}} -t v${{env.VERSION_NAME}} target/scala-2.13/s3-cloudsearch-lambda_2.13-${{env.VERSION_NAME}}.jar --latest --generate-notes
+          gh release create v${{env.VERSION_NAME}} -t v${{env.VERSION_NAME}} /home/runner/work/s3-cloudsearch-lambda/s3-cloudsearch-lambda/target/scala-2.13/s3-cloudsearch-lambda-assembly-${{env.VERSION_NAME}}.jar --latest --generate-notes
         env:
           GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
