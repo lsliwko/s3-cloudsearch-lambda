@@ -26,7 +26,3 @@ libraryDependencies += "com.amazonaws" % "aws-java-sdk-cloudsearch" % "1.12.469"
 libraryDependencies += "com.google.code.gson" % "gson" % "2.10.1"
 libraryDependencies += "com.google.guava" % "guava" % "31.1-jre"
 libraryDependencies += "org.apache.commons" % "commons-lang3" % "3.12.0"
-
-
-
-
