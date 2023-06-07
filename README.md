@@ -4,6 +4,10 @@ The AWS Lambda function operates on an infrastructure offered by Amazon that ens
 
 In this session, our primary goal is to offer a practical demonstration of this framework, highlighting its implementation in Scala through hands-on examples.
 
+## Video
+
+https://youtu.be/bD9EfC_2NvY
+
 ## Presentation
 
 https://prezi.com/view/oimJSfgQ449pvooEUZnY/
